@@ -1,0 +1,176 @@
+{
+  "update_interval_minutes": 30,
+  "cities": [
+    {"city": "Montgomery", "state": "AL"},
+    {"city": "Birmingham", "state": "AL"},
+    {"city": "Mobile", "state": "AL"},
+    
+    {"city": "Juneau", "state": "AK"},
+    {"city": "Anchorage", "state": "AK"},
+    {"city": "Fairbanks", "state": "AK"},
+
+    
+    {"city": "Phoenix", "state": "AZ"},
+    {"city": "Tucson", "state": "AZ"},
+    {"city": "Mesa", "state": "AZ"},
+    
+    {"city": "Little Rock", "state": "AR"},
+    {"city": "Fort Smith", "state": "AR"},
+    
+    {"city": "Sacramento", "state": "CA"},
+    {"city": "Los Angeles", "state": "CA"},
+    {"city": "San Diego", "state": "CA"},
+    {"city": "San Jose", "state": "CA"},
+    {"city": "San Francisco", "state": "CA"},
+    
+    {"city": "Denver", "state": "CO"},
+    {"city": "Colorado Springs", "state": "CO"},
+    
+    {"city": "Hartford", "state": "CT"},
+    {"city": "Bridgeport", "state": "CT"},
+    
+    {"city": "Dover", "state": "DE"},
+    {"city": "Wilmington", "state": "DE"},
+    
+    {"city": "Tallahassee", "state": "FL"},
+    {"city": "Jacksonville", "state": "FL"},
+    {"city": "Miami", "state": "FL"},
+    {"city": "Tampa", "state": "FL"},
+    {"city": "Orlando", "state": "FL"},
+    
+    {"city": "Atlanta", "state": "GA"},
+    {"city": "Augusta", "state": "GA"},
+    {"city": "Savannah", "state": "GA"},
+    
+    {"city": "Honolulu", "state": "HI"},
+    
+    {"city": "Boise", "state": "ID"},
+    
+    {"city": "Springfield", "state": "IL"},
+    {"city": "Chicago", "state": "IL"},
+    {"city": "Peoria", "state": "IL"},
+    
+    {"city": "Indianapolis", "state": "IN"},
+    {"city": "Fort Wayne", "state": "IN"},
+    {"city": "Bloomington", "state": "IN"},
+    {"city": "Columbus", "state": "IN"},
+    
+    {"city": "Des Moines", "state": "IA"},
+    {"city": "Cedar Rapids", "state": "IA"},
+    
+    {"city": "Topeka", "state": "KS"},
+    {"city": "Wichita", "state": "KS"},
+    
+    {"city": "Frankfort", "state": "KY"},
+    {"city": "Louisville", "state": "KY"},
+    {"city": "Lexington", "state": "KY"},
+    
+    {"city": "Baton Rouge", "state": "LA"},
+    {"city": "New Orleans", "state": "LA"},
+    
+    {"city": "Augusta", "state": "ME"},
+    {"city": "Portland", "state": "ME"},
+    
+    {"city": "Annapolis", "state": "MD"},
+    {"city": "Baltimore", "state": "MD"},
+    
+    {"city": "Boston", "state": "MA"},
+    {"city": "Worcester", "state": "MA"},
+    
+    {"city": "Lansing", "state": "MI"},
+    {"city": "Detroit", "state": "MI"},
+    {"city": "Grand Rapids", "state": "MI"},
+    
+    {"city": "Saint Paul", "state": "MN"},
+    {"city": "Minneapolis", "state": "MN"},
+    
+    {"city": "Jackson", "state": "MS"},
+    {"city": "Gulfport", "state": "MS"},
+    
+    {"city": "Jefferson City", "state": "MO"},
+    {"city": "Kansas City", "state": "MO"},
+    {"city": "Saint Louis", "state": "MO"},
+    
+    {"city": "Helena", "state": "MT"},
+    {"city": "Billings", "state": "MT"},
+    
+    {"city": "Lincoln", "state": "NE"},
+    {"city": "Omaha", "state": "NE"},
+    
+    {"city": "Carson City", "state": "NV"},
+    {"city": "Las Vegas", "state": "NV"},
+    {"city": "Reno", "state": "NV"},
+    
+    {"city": "Concord", "state": "NH"},
+    {"city": "Manchester", "state": "NH"},
+    
+    {"city": "Trenton", "state": "NJ"},
+    {"city": "Newark", "state": "NJ"},
+    
+    {"city": "Santa Fe", "state": "NM"},
+    {"city": "Albuquerque", "state": "NM"},
+    
+    {"city": "Albany", "state": "NY"},
+    {"city": "New York", "state": "NY"},
+    {"city": "Buffalo", "state": "NY"},
+    
+    {"city": "Raleigh", "state": "NC"},
+    {"city": "Charlotte", "state": "NC"},
+    
+    {"city": "Bismarck", "state": "ND"},
+    {"city": "Fargo", "state": "ND"},
+    
+    {"city": "Columbus", "state": "OH"},
+    {"city": "Cleveland", "state": "OH"},
+    {"city": "Cincinnati", "state": "OH"},
+    
+    {"city": "Oklahoma City", "state": "OK"},
+    {"city": "Tulsa", "state": "OK"},
+    
+    {"city": "Salem", "state": "OR"},
+    {"city": "Portland", "state": "OR"},
+    
+    {"city": "Harrisburg", "state": "PA"},
+    {"city": "Philadelphia", "state": "PA"},
+    {"city": "Pittsburgh", "state": "PA"},
+    
+    {"city": "Providence", "state": "RI"},
+    
+    {"city": "Columbia", "state": "SC"},
+    {"city": "Charleston", "state": "SC"},
+    
+    {"city": "Pierre", "state": "SD"},
+    {"city": "Sioux Falls", "state": "SD"},
+    
+    {"city": "Nashville", "state": "TN"},
+    {"city": "Memphis", "state": "TN"},
+    {"city": "Knoxville", "state": "TN"},
+    
+    {"city": "Austin", "state": "TX"},
+    {"city": "Houston", "state": "TX"},
+    {"city": "Dallas", "state": "TX"},
+    {"city": "San Antonio", "state": "TX"},
+    
+    {"city": "Salt Lake City", "state": "UT"},
+    {"city": "Provo", "state": "UT"},
+    
+    {"city": "Montpelier", "state": "VT"},
+    {"city": "Burlington", "state": "VT"},
+    
+    {"city": "Richmond", "state": "VA"},
+    {"city": "Virginia Beach", "state": "VA"},
+    
+    {"city": "Olympia", "state": "WA"},
+    {"city": "Seattle", "state": "WA"},
+    {"city": "Spokane", "state": "WA"},
+    
+    {"city": "Charleston", "state": "WV"},
+    
+    {"city": "Madison", "state": "WI"},
+    {"city": "Milwaukee", "state": "WI"},
+    
+    {"city": "Cheyenne", "state": "WY"},
+    
+    {"city": "Washington", "state": "DC"}
+  ]
+}
