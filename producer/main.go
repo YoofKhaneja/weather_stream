@@ -42,22 +42,30 @@ type CurrentWeatherEvent struct {
 	PrecipInch   float64   `json:"precipitation_inch"`
 	WeatherCode  int       `json:"weather_code"`
 	Summary      string    `json:"summary"`
-	RecordedAt   time.Time `json:"recorded_at"` // Changed from Timestamp
+	RecordedAt   time.Time `json:"recorded_at"`
 }
 
-type HourlyForecastEvent struct {
-	EventID      string    `json:"event_id"`
-	City         string    `json:"city"`
-	State        string    `json:"state"`
-	ForecastHour time.Time `json:"forecast_hour"`
-	TemperatureF float64   `json:"temperature_f"`
-	Humidity     int       `json:"humidity"`
-	PressureHpa  float64   `json:"pressure_hpa"`
-	WindSpeedMph float64   `json:"wind_speed_mph"`
-	PrecipInch   float64   `json:"precipitation_inch"`
-	WeatherCode  int       `json:"weather_code"`
-	Summary      string    `json:"summary"`
-	RecordedAt   time.Time `json:"recorded_at"`
+type ForecastComparisonEvent struct {
+	EventID string `json:"event_id"`
+	City    string `json:"city"`
+	State   string `json:"state"`
+
+	CurrentTime        time.Time `json:"current_time"`
+	CurrentWeatherCode int       `json:"current_weather_code"`
+	CurrentSummary     string    `json:"current_summary"`
+
+	ForecastHour        time.Time `json:"forecast_hour"`
+	ForecastWeatherCode int       `json:"forecast_weather_code"`
+	ForecastSummary     string    `json:"forecast_summary"`
+
+	TemperatureF float64 `json:"temperature_f"`
+	Humidity     int     `json:"humidity"`
+	PressureHpa  float64 `json:"pressure_hpa"`
+	WindSpeedMph float64 `json:"wind_speed_mph"`
+	PrecipInch   float64 `json:"precipitation_inch"`
+
+	Message    string    `json:"message"`
+	RecordedAt time.Time `json:"recorded_at"`
 }
 
 type GeocodeResponse struct {
@@ -215,14 +223,14 @@ func runBatch(locs []Location, producer sarama.SyncProducer) {
 	ok := 0
 	fail := 0
 
-	log.Printf("%s", "\n"+strings.Repeat("=", 80))
+	log.Printf("\n%s", strings.Repeat("=", 80))
 	log.Printf("🚀 Starting batch at %s", start.Format("2006-01-02 15:04:05 MST"))
-	log.Printf("%s", strings.Repeat("=", 80)+"\n")
+	log.Printf("%s\n", strings.Repeat("=", 80))
 
 	for _, loc := range locs {
 		log.Printf("\n--- Processing: %s, %s ---", loc.City, loc.State)
 
-		current, hourly, err := fetchWeather(loc)
+		current, forecast, err := fetchWeather(loc)
 		if err != nil {
 			log.Printf("❌ weather error %s, %s: %v\n", loc.City, loc.State, err)
 			fail++
@@ -237,28 +245,31 @@ func runBatch(locs []Location, producer sarama.SyncProducer) {
 		}
 		log.Printf("✅ Published current weather to Kafka")
 
-		for i, h := range hourly {
-			if err := publishHourly(producer, h); err != nil {
-				log.Printf("❌ kafka error (hourly[%d]) %s, %s: %v", i, loc.City, loc.State, err)
+		if forecast != nil {
+			if err := publishForecast(producer, forecast); err != nil {
+				log.Printf("❌ kafka error (forecast) %s, %s: %v", loc.City, loc.State, err)
 			} else {
-				log.Printf("✅ Published hourly[%d]: %s | %.1f°F", i+1, h.ForecastHour.Format("15:04"), h.TemperatureF)
+				log.Printf("✅ Published forecast comparison: %s | %s",
+					forecast.ForecastHour.Format("15:04"), forecast.Message)
 			}
+		} else {
+			log.Printf("⚠️  No suitable forecast comparison for %s, %s", loc.City, loc.State)
 		}
 
 		ok++
-		log.Printf("✅ SUCCESS: %s, %s | Current: %.1f°F | Hourly forecasts: %d\n",
-			current.City, current.State, current.TemperatureF, len(hourly))
+		log.Printf("✅ SUCCESS: %s, %s | Current: %.1f°F\n",
+			current.City, current.State, current.TemperatureF)
 
 		time.Sleep(300 * time.Millisecond)
 	}
 
-	log.Printf("%s", "\n"+strings.Repeat("=", 80))
+	log.Printf("\n%s", strings.Repeat("=", 80))
 	log.Printf("🏁 Batch complete in %v (success=%d, failed=%d)",
 		time.Since(start).Round(time.Second), ok, fail)
-	log.Printf("%s", strings.Repeat("=", 80)+"\n")
+	log.Printf("%s\n", strings.Repeat("=", 80))
 }
 
-func fetchWeather(loc Location) (*CurrentWeatherEvent, []*HourlyForecastEvent, error) {
+func fetchWeather(loc Location) (*CurrentWeatherEvent, *ForecastComparisonEvent, error) {
 	base := "https://api.open-meteo.com/v1/forecast"
 	params := url.Values{}
 	params.Set("latitude", fmt.Sprintf("%.4f", loc.Lat))
@@ -269,7 +280,8 @@ func fetchWeather(loc Location) (*CurrentWeatherEvent, []*HourlyForecastEvent, e
 	params.Set("wind_speed_unit", "mph")
 	params.Set("precipitation_unit", "inch")
 	params.Set("timezone", "auto")
-	params.Set("forecast_days", "1")
+	params.Set("past_hours", "0")
+	params.Set("forecast_hours", "2")
 
 	u := fmt.Sprintf("%s?%s", base, params.Encode())
 
@@ -289,20 +301,28 @@ func fetchWeather(loc Location) (*CurrentWeatherEvent, []*HourlyForecastEvent, e
 		return nil, nil, err
 	}
 
-	// Current time when we make the request
 	now := time.Now()
-	log.Printf("🕐 Current time: %s", now.Format("2006-01-02 15:04:05 MST"))
+	log.Printf("🕐 System time: %s", now.Format("2006-01-02 15:04:05 MST"))
+
+	if len(om.Hourly.Time) < 2 {
+		log.Printf("⚠️ Need at least 2 hourly points (current + 1h) for %s, %s, got %d",
+			loc.City, loc.State, len(om.Hourly.Time))
+		return nil, nil, fmt.Errorf("not enough hourly points")
+	}
 
 	eventID := fmt.Sprintf("evt-%d-%s-%s", now.UnixNano(), loc.City, loc.State)
 
-	// Parse current weather time from API
-	currentTime, _ := time.Parse("2006-01-02T15:04", om.Current.Time)
-	summary := weatherCodeMap[om.Current.WeatherCode]
-	if summary == "" {
-		summary = "Unknown"
+	// Parse current block
+	currentTime, err := time.Parse("2006-01-02T15:04", om.Current.Time)
+	if err != nil {
+		log.Printf("⚠️ Failed to parse current time %q, falling back to now", om.Current.Time)
+		currentTime = now
+	}
+	curSummary := weatherCodeMap[om.Current.WeatherCode]
+	if curSummary == "" {
+		curSummary = "Unknown"
 	}
 
-	// Store current conditions
 	current := &CurrentWeatherEvent{
 		EventID:      eventID,
 		City:         loc.City,
@@ -313,82 +333,67 @@ func fetchWeather(loc Location) (*CurrentWeatherEvent, []*HourlyForecastEvent, e
 		WindSpeedMph: om.Current.WindSpeed,
 		PrecipInch:   om.Current.Precipitation,
 		WeatherCode:  om.Current.WeatherCode,
-		Summary:      summary,
+		Summary:      curSummary,
 		RecordedAt:   currentTime,
 	}
 
-	log.Printf("📍 %s, %s - Current: %.1f°F at %s",
-		loc.City, loc.State, current.TemperatureF, currentTime.Format("15:04 MST"))
+	log.Printf("📍 %s, %s - Current: %.1f°F (%s) at %s",
+		loc.City, loc.State, current.TemperatureF, curSummary, currentTime.Format("2006-01-02 15:04"))
 
-	// Calculate next 5 full hours
-	nextHour := now.Truncate(time.Hour).Add(time.Hour)
-	targetHours := make([]time.Time, 5)
-	for i := 0; i < 5; i++ {
-		targetHours[i] = nextHour.Add(time.Duration(i) * time.Hour)
+	// Use hourly[0] as current, hourly[1] as forecast
+	log.Printf("📊 Hourly points: %d", len(om.Hourly.Time))
+
+	currentHourlyTime, err := time.Parse("2006-01-02T15:04", om.Hourly.Time[0])
+	if err != nil {
+		log.Printf("⚠️ Failed to parse current hourly time: %s", om.Hourly.Time[0])
+		return current, nil, nil
 	}
 
-	log.Printf("🎯 Target forecast hours:")
-	for i, t := range targetHours {
-		log.Printf("   [%d] %s", i+1, t.Format("15:04 MST"))
+	forecastTime, err := time.Parse("2006-01-02T15:04", om.Hourly.Time[1])
+	if err != nil {
+		log.Printf("⚠️ Failed to parse forecast time: %s", om.Hourly.Time[1])
+		return current, nil, nil
 	}
 
-	log.Printf("📊 API returned %d hourly data points", len(om.Hourly.Time))
-	if len(om.Hourly.Time) > 0 {
-		log.Printf("   First: %s", om.Hourly.Time[0])
-		log.Printf("   Last:  %s", om.Hourly.Time[len(om.Hourly.Time)-1])
+	log.Printf("🔮 Using hourly[0] as current (%s), hourly[1] as forecast (%s)",
+		currentHourlyTime.Format("15:04"), forecastTime.Format("15:04"))
+
+	forecastCode := om.Hourly.WeatherCode[1]
+	forecastSummary := weatherCodeMap[forecastCode]
+	if forecastSummary == "" {
+		forecastSummary = "Unknown"
 	}
 
-	var hourlyEvents []*HourlyForecastEvent
-
-	// Match API hourly data to our target hours
-	for idx, targetHour := range targetHours {
-		found := false
-		for i := 0; i < len(om.Hourly.Time); i++ {
-			hourTime, err := time.Parse("2006-01-02T15:04", om.Hourly.Time[i])
-			if err != nil {
-				log.Printf("⚠️  Failed to parse hourly time: %s", om.Hourly.Time[i])
-				continue
-			}
-
-			// Match by hour (ignore minutes)
-			if hourTime.Hour() == targetHour.Hour() && hourTime.Day() == targetHour.Day() {
-				hSummary := weatherCodeMap[om.Hourly.WeatherCode[i]]
-				if hSummary == "" {
-					hSummary = "Unknown"
-				}
-
-				hourlyEvents = append(hourlyEvents, &HourlyForecastEvent{
-					EventID:      eventID,
-					City:         loc.City,
-					State:        loc.State,
-					ForecastHour: hourTime,
-					TemperatureF: om.Hourly.Temperature[i],
-					Humidity:     om.Hourly.Humidity[i],
-					PressureHpa:  om.Hourly.Pressure[i],
-					WindSpeedMph: om.Hourly.WindSpeed[i],
-					PrecipInch:   om.Hourly.Precipitation[i],
-					WeatherCode:  om.Hourly.WeatherCode[i],
-					Summary:      hSummary,
-					RecordedAt:   now,
-				})
-
-				log.Printf("   ✅ Matched target[%d] %s → API data at %s (%.1f°F, %s)",
-					idx+1, targetHour.Format("15:04"), hourTime.Format("15:04"),
-					om.Hourly.Temperature[i], hSummary)
-
-				found = true
-				break
-			}
-		}
-
-		if !found {
-			log.Printf("   ❌ No match found for target[%d] %s", idx+1, targetHour.Format("15:04"))
-		}
+	var msg string
+	if forecastCode == om.Current.WeatherCode && forecastSummary == curSummary {
+		msg = "Expect conditions to continue"
+	} else {
+		msg = fmt.Sprintf("Expect weather to change - %s to %s", curSummary, forecastSummary)
 	}
 
-	log.Printf("📦 Created %d hourly forecast events for %s, %s", len(hourlyEvents), loc.City, loc.State)
+	forecast := &ForecastComparisonEvent{
+		EventID:             eventID,
+		City:                loc.City,
+		State:               loc.State,
+		CurrentTime:         currentTime,
+		CurrentWeatherCode:  om.Current.WeatherCode,
+		CurrentSummary:      curSummary,
+		ForecastHour:        forecastTime,
+		ForecastWeatherCode: forecastCode,
+		ForecastSummary:     forecastSummary,
+		TemperatureF:        om.Hourly.Temperature[1],
+		Humidity:            om.Hourly.Humidity[1],
+		PressureHpa:         om.Hourly.Pressure[1],
+		WindSpeedMph:        om.Hourly.WindSpeed[1],
+		PrecipInch:          om.Hourly.Precipitation[1],
+		Message:             msg,
+		RecordedAt:          now,
+	}
 
-	return current, hourlyEvents, nil
+	log.Printf("🔮 Forecast at %s: %.1f°F (%s) | %s",
+		forecastTime.Format("2006-01-02 15:04"), forecast.TemperatureF, forecastSummary, msg)
+
+	return current, forecast, nil
 }
 
 func publishCurrent(p sarama.SyncProducer, ev *CurrentWeatherEvent) error {
@@ -409,7 +414,7 @@ func publishCurrent(p sarama.SyncProducer, ev *CurrentWeatherEvent) error {
 	return err
 }
 
-func publishHourly(p sarama.SyncProducer, ev *HourlyForecastEvent) error {
+func publishForecast(p sarama.SyncProducer, ev *ForecastComparisonEvent) error {
 	b, err := json.Marshal(ev)
 	if err != nil {
 		return err
@@ -418,7 +423,7 @@ func publishHourly(p sarama.SyncProducer, ev *HourlyForecastEvent) error {
 	key := fmt.Sprintf("%s,%s", ev.City, ev.State)
 
 	msg := &sarama.ProducerMessage{
-		Topic: "weather.hourly",
+		Topic: "weather.forecast_comparison",
 		Key:   sarama.StringEncoder(key),
 		Value: sarama.ByteEncoder(b),
 	}
