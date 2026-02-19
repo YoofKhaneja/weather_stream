@@ -23,19 +23,20 @@ Open-Meteo API → Producer (Go) → Kafka → Consumer (Go) → PostgreSQL → 
 
 ## Quick Start
 
-# Start services
+### Start services
 docker-compose up -d
 
-# Run producer (terminal 1)
+### Run producer (terminal 1)
 go run producer/main.go
 
-# Run consumer (terminal 2)
+### Run consumer (terminal 2)
 go run consumer/main.go
 
-# After 24+ hours, run analytics
-python3 analytics_visualizations.py  # or go run analytics_service.go
+### After 24+ hours, run analytics
+python3 analytics_visualizations.py or go run analytics_service/main.go
 
 ## Tech Stack
 
 Go, Apache Kafka, PostgreSQL, Docker, Python (Pandas, Plotly)
+
 
