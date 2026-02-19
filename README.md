@@ -18,7 +18,7 @@ Open-Meteo API → Producer (Go) → Kafka → Consumer (Go) → PostgreSQL → 
 - **`init.sql`** - Database schema (current_weather, forecast_comparison tables)
 - **`cities.json`** - List of 100+ US cities to track
 - **`analytics_queries.sql`** - SQL queries for temperature trends, forecast accuracy, regional stats
-- **`analytics_service.go`** - Exports analytics data to JSON/CSV
+- **`analytics_service/main.go`** - Exports analytics data to JSON/CSV
 - **`analytics_visualizations.py`** - Generates charts (Plotly/Matplotlib) and reports
 
 ## Quick Start
@@ -38,5 +38,6 @@ python3 analytics_visualizations.py or go run analytics_service/main.go
 ## Tech Stack
 
 Go, Apache Kafka, PostgreSQL, Docker, Python (Pandas, Plotly)
+
 
 
