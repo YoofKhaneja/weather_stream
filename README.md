@@ -33,9 +33,9 @@ go run producer/main.go
 go run consumer/main.go
 
 # After 24+ hours, run analytics
-python3 analytics_visualizations.py  # or
-go run analytics_service.go
+python3 analytics_visualizations.py  # or go run analytics_service.go
 
 ## Tech Stack
 
 Go, Apache Kafka, PostgreSQL, Docker, Python (Pandas, Plotly)
+
